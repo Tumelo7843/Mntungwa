@@ -126,7 +126,10 @@ export interface PersonRow extends Profile {
 }
 
 export async function listPeople(search = ''): Promise<PersonRow[]> {
-  let q = supabase.from('profiles').select('*, user_roles(role)').order('full_name');
+  let q = supabase
+    .from('profiles')
+    .select('*, user_roles!user_roles_profile_id_fkey(role)')
+    .order('full_name');
   if (search.trim()) q = q.ilike('full_name', `%${search.trim()}%`);
 
   const rows = unwrap(await q) as (Profile & { user_roles: { role: AppRole }[] })[];
@@ -173,7 +176,7 @@ export interface EnrollmentRow extends Enrollment {
 export async function listEnrollments(status?: string): Promise<EnrollmentRow[]> {
   let q = supabase
     .from('enrollments')
-    .select('*, profile:profiles(*), course:courses(*)')
+    .select('*, profile:profiles!enrollments_profile_id_fkey(*), course:courses(*)')
     .order('applied_at', { ascending: false });
   if (status) q = q.eq('status', status);
   return unwrap(await q) as EnrollmentRow[];
@@ -630,7 +633,7 @@ export async function listGradingQueue(): Promise<QueueItem[]> {
     await supabase
       .from('summative_attempts')
       .select(
-        '*, assessment:summative_assessments(*, module:course_modules(*)), enrollment:enrollments(*, profile:profiles(*))',
+        '*, assessment:summative_assessments(*, module:course_modules(*)), enrollment:enrollments(*, profile:profiles!enrollments_profile_id_fkey(*))',
       )
       .in('status', ['SUBMITTED', 'UNDER_REVIEW'])
       .order('submitted_at'),
@@ -745,7 +748,7 @@ export async function listExamAttempts(): Promise<
   return unwrap(
     await supabase
       .from('final_exam_attempts')
-      .select('*, enrollment:enrollments(*, profile:profiles(*))')
+      .select('*, enrollment:enrollments(*, profile:profiles!enrollments_profile_id_fkey(*))')
       .order('started_at', { ascending: false })
       .limit(100),
   ) as (FinalExamAttempt & { enrollment: Enrollment & { profile: Profile } })[];
@@ -759,7 +762,7 @@ export async function listCertificates(): Promise<(Certificate & { profile: Prof
   return unwrap(
     await supabase
       .from('certificates')
-      .select('*, profile:profiles(*)')
+      .select('*, profile:profiles!certificates_profile_id_fkey(*)')
       .order('issued_at', { ascending: false }),
   ) as (Certificate & { profile: Profile })[];
 }
@@ -794,7 +797,7 @@ export async function revokeCertificate(certificateId: string, reason: string): 
 export async function listPayments(status?: string): Promise<(Payment & { profile: Profile; invoice: Invoice })[]> {
   let q = supabase
     .from('payments')
-    .select('*, profile:profiles(*), invoice:invoices(*)')
+    .select('*, profile:profiles!payments_profile_id_fkey(*), invoice:invoices(*)')
     .order('submitted_at', { ascending: false });
   if (status) q = q.eq('status', status);
   return unwrap(await q) as (Payment & { profile: Profile; invoice: Invoice })[];
@@ -804,7 +807,7 @@ export async function listInvoices(): Promise<(Invoice & { profile: Profile })[]
   return unwrap(
     await supabase
       .from('invoices')
-      .select('*, profile:profiles(*)')
+      .select('*, profile:profiles!invoices_profile_id_fkey(*)')
       .order('issued_at', { ascending: false }),
   ) as (Invoice & { profile: Profile })[];
 }
