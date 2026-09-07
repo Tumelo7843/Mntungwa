@@ -148,6 +148,13 @@ export function toAppError(error: unknown): AppError {
       raw,
     );
   }
+  if (e.code === '42883' || e.code === 'PGRST202') {
+    return new AppError(
+      'UNKNOWN',
+      'A required database function is missing. A backend migration has not been applied yet.',
+      raw,
+    );
+  }
   if (raw.includes('Failed to fetch') || raw.includes('NetworkError')) {
     return new AppError('NETWORK', 'Could not reach the server. Check your connection.');
   }
